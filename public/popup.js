@@ -7,7 +7,7 @@ priceScrapper.addEventListener("click", async () => {
         target: {tabId: tab.id},
         func: getSpanText,
     });
-
+ 
 })
 
 // Function to get text content of a span element with class "hello"
