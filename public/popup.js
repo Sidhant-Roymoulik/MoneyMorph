@@ -42,13 +42,56 @@ function getSpanText() {
 
 
     // get the exchange rate
-    
-    
+    // const converter = new CurrencyConverter("fca_live_7StwYRzj3RL0A37DlMs9lXtScviEgSRhaff0yP7a");
+    // CurrencyConverter monmor("fca_live_7StwYRzj3RL0A37DlMs9lXtScviEgSRhaff0yP7a");
+    // var rate = converter.fetchLatestRate();
+    let currencyMap = new Map([
+        ['USD', 1],
+        ['EUR', 0.92],
+        ['GBP', 0.77],
+        ['JPY', 151.83],
+        ['AUD', 1.51],
+        ['CAD', 1.39],
+        ['CHF', 0.87],
+        ['CNY', 7.12]
+    ]);
+    chrome.storage.local.get(['preferredCurrency'], function(result) {
+        const currency = result.preferredCurrency;
+        const rate = currencyMap.get(currency);
+        if (!rate) {
+            console.error('Currency rate not found for:', currency);
+            return;
+        }
+        for (let i = 0; i < wholePrice.length; i++) {
+            try {
+                let priceText = wholePrice[i].innerHTML;
+                let numberOnly;
+                let originalPrice;
+                if (priceText.includes('(')) { // Get the original price from parentheses
+                    originalPrice = priceText
+                        .split('(')[1]          
+                        .split(')')[0];
+                    numberOnly = parseFloat(originalPrice.replace('$', ''));
+                } else { // For first conversion, save the original price with $ sign
+                    
+                    originalPrice = priceText;
+                    numberOnly = parseFloat(priceText.replace('$', ''));
+                }
+                // numberOnly = parseFloat(priceText.replace('$', ''));
+                let converted = numberOnly * rate;
 
-    for (let i = 0; i < wholePrice.length; i++) {
-        console.log(wholePrice[i].innerHTML);
-        wholePrice[i].innerHTML = "123";
-    }
-    // alert(wholePrice.innerHTML);
-
+                const symbols = {
+                    'USD': '$',
+                    'EUR': '€',
+                    'GBP': '£',
+                    'JPY': '¥',
+                    'CNY': '¥',
+                };
+                const symbol = symbols[currency] || currency;
+                wholePrice[i].innerHTML = `${symbol}${converted.toFixed(2)} (${originalPrice})`;
+            } catch (error) {
+                console.error('Error converting price:', error);
+            }
+        }
+    });
 };
