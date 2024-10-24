@@ -86,7 +86,7 @@ function getSpanText() {
                     'JPY': '¥',
                     'CNY': '¥',
                 };
-                const symbol = symbols[currency] || currency;
+                const symbol = symbols[currency] || currency + ' $';
                 wholePrice[i].innerHTML = `${symbol}${converted.toFixed(2)} (${originalPrice})`;
             } catch (error) {
                 console.error('Error converting price:', error);
