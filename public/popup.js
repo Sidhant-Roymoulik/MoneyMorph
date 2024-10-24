@@ -30,14 +30,25 @@ priceScrapper.addEventListener("click", async () => {
 
 // Function to get text content of a span element with class "hello"
 function getSpanText() {
-    let wholePrice = document.querySelector('span.a-price-whole');
-    if (wholePrice) {
-        const nestedElement = wholePrice.querySelector('.a-price-decimal');
-        if (nestedElement) {
-          nestedElement.remove();
-        }
+    let wholePrice = document.querySelectorAll('span._cDEzb_p13n-sc-price_3mJ9Z');
+    // if (wholePrice) {
+    //     const nestedElement = wholePrice.querySelector('.a-price-decimal');
+    //     if (nestedElement) {
+    //       nestedElement.remove();
+    //     }
+    // }
+    // let fractionPrice = document.querySelector('span.a-price-fraction');
+    // alert(wholePrice.innerHTML + " " + fractionPrice.innerHTML);
+
+
+    // get the exchange rate
+    
+    
+
+    for (let i = 0; i < wholePrice.length; i++) {
+        console.log(wholePrice[i].innerHTML);
+        wholePrice[i].innerHTML = "123";
     }
-    let fractionPrice = document.querySelector('span.a-price-fraction');
-    alert(wholePrice.innerHTML + " " + fractionPrice.innerHTML);
+    // alert(wholePrice.innerHTML);
 
 };
