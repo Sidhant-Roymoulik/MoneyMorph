@@ -7,5 +7,5 @@
     "default_popup": "index.html",
     "default_icon": "hello_extensions.png"
   },
-  "permissions": ["activeTab", "scripting"]
+  "permissions": ["activeTab", "scripting", "storage", "tabs"]
 }
