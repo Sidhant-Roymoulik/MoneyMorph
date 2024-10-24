@@ -1,3 +1,6 @@
+import parseCurrency from 'parsecurrency';
+import countryToCurrency from "country-to-currency";
+
 document.addEventListener('DOMContentLoaded', () => {
   const toCurrency = document.getElementById('toCurrency');
   const convertBtn = document.getElementById('convertBtn');
@@ -46,6 +49,8 @@ function getSpanText() {
 
   for (let i = 0; i < wholePrice.length; i++) {
     console.log(wholePrice[i].innerHTML);
+    console.log(getCurrencyInfo(wholePrice[i].innerHTML));
+
     wholePrice[i].innerHTML = "123";
   }
 
