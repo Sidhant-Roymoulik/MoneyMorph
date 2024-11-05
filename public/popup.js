@@ -1,7 +1,13 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const toCurrency = document.getElementById('toCurrency');
   const convertBtn = document.getElementById('convertBtn');
   const result = document.getElementById('result');
+
+  // get the exchange rates
+  const converter = new CurrencyConverter("fca_live_7StwYRzj3RL0A37DlMs9lXtScviEgSRhaff0yP7a");
+
+  let rates = await converter.fetchLatestRate('USD', 'USD,EUR,GBP,JPY,AUD,CAD,CHF,CNY');
+  chrome.storage.local.set({ rates });
 
   // Load saved currency preference when popup opens
   chrome.storage.local.get(['preferredCurrency'], function (result) {
@@ -29,68 +35,95 @@ priceScrapper.addEventListener("click", async () => {
 
 // Function to get text content of a span element with class "hello"
 function getSpanText() {
-  let wholePrice = document.querySelectorAll('span._cDEzb_p13n-sc-price_3mJ9Z');
-  // if (wholePrice) {
-  //     const nestedElement = wholePrice.querySelector('.a-price-decimal');
-  //     if (nestedElement) {
-  //       nestedElement.remove();
-  //     }
-  // }
-  // let fractionPrice = document.querySelector('span.a-price-fraction');
-  // alert(wholePrice.innerHTML + " " + fractionPrice.innerHTML);
 
+  chrome.storage.local.get(['preferredCurrency', 'rates'], function (result) {
+    const currency = result.preferredCurrency;
+    const rates = result.rates;
 
-    // get the exchange rate
-    // const converter = new CurrencyConverter("fca_live_7StwYRzj3RL0A37DlMs9lXtScviEgSRhaff0yP7a");
-    // CurrencyConverter monmor("fca_live_7StwYRzj3RL0A37DlMs9lXtScviEgSRhaff0yP7a");
-    // var rate = converter.fetchLatestRate();
-    let currencyMap = new Map([
-        ['USD', 1],
-        ['EUR', 0.92],
-        ['GBP', 0.77],
-        ['JPY', 151.83],
-        ['AUD', 1.51],
-        ['CAD', 1.39],
-        ['CHF', 0.87],
-        ['CNY', 7.12]
-    ]);
-    chrome.storage.local.get(['preferredCurrency'], function(result) {
-        const currency = result.preferredCurrency;
-        const rate = currencyMap.get(currency);
-        if (!rate) {
-            console.error('Currency rate not found for:', currency);
-            return;
+    if (!rates || !currency) {
+      console.error('Rates or preferred currency not found');
+      return;
+    }
+
+    const rate = rates[currency];
+
+    if (!rate) {
+      console.error('Currency rate not found for:', currency);
+      return;
+    }
+
+    let wholePrice = document.querySelectorAll('span._cDEzb_p13n-sc-price_3mJ9Z');
+
+    for (let i = 0; i < wholePrice.length; i++) {
+      try {
+        let priceText = wholePrice[i].innerHTML;
+        let numberOnly;
+        let originalPrice;
+        if (priceText.includes('(')) { // Get the original price from parentheses
+          originalPrice = priceText
+            .split('(')[1]
+            .split(')')[0];
+          numberOnly = parseFloat(originalPrice.replace('$', ''));
+        } else { // For first conversion, save the original price with $ sign
+
+          originalPrice = priceText;
+          numberOnly = parseFloat(priceText.replace('$', ''));
         }
-        for (let i = 0; i < wholePrice.length; i++) {
-            try {
-                let priceText = wholePrice[i].innerHTML;
-                let numberOnly;
-                let originalPrice;
-                if (priceText.includes('(')) { // Get the original price from parentheses
-                    originalPrice = priceText
-                        .split('(')[1]          
-                        .split(')')[0];
-                    numberOnly = parseFloat(originalPrice.replace('$', ''));
-                } else { // For first conversion, save the original price with $ sign
-                    
-                    originalPrice = priceText;
-                    numberOnly = parseFloat(priceText.replace('$', ''));
-                }
-                // numberOnly = parseFloat(priceText.replace('$', ''));
-                let converted = numberOnly * rate;
+        // numberOnly = parseFloat(priceText.replace('$', ''));
+        let converted = numberOnly * rate;
 
-                const symbols = {
-                    'USD': '$',
-                    'EUR': '€',
-                    'GBP': '£',
-                    'JPY': '¥',
-                    'CNY': '¥',
-                };
-                const symbol = symbols[currency] || currency + ' $';
-                wholePrice[i].innerHTML = `${symbol}${converted.toFixed(2)} (${originalPrice})`;
-            } catch (error) {
-                console.error('Error converting price:', error);
-            }
-        }
-    });
+        const symbols = {
+          'USD': '$',
+          'EUR': '€',
+          'GBP': '£',
+          'JPY': '¥',
+          'CNY': '¥',
+        };
+        const symbol = symbols[currency] || currency + ' $';
+        wholePrice[i].innerHTML = `${symbol}${converted.toFixed(2)} (${originalPrice})`;
+      } catch (error) {
+        console.error('Error converting price:', error);
+      }
+    }
+  });
 };
+
+class CurrencyConverter {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://api.freecurrencyapi.com/v1/';
+  }
+
+  // Method to fetch the latest exchange rates
+  async fetchLatestRate(fromCurrency = 'USD', toCurrency = 'EUR') {
+    const url = `${this.baseUrl}latest?apikey=${this.apiKey}&currencies=${toCurrency}&base_currency=${fromCurrency}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Error fetching latest rates: ${response.statusText}`);
+      }
+      const reply = await response.json();
+      return reply.data;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+
+  // Method to convert an amount from one currency to another
+  async convert(amount, fromCurrency, toCurrency) {
+    try {
+      const rates = await this.fetchLatestRate(fromCurrency, toCurrency);
+      const conversionRate = rates[toCurrency];
+      if (!conversionRate) {
+        throw new Error(`Unable to find rate for currency: ${toCurrency}`);
+      }
+
+      const convertedAmount = amount * conversionRate
+      return convertedAmount;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+}
