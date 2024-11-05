@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // get the exchange rates
   const converter = new CurrencyConverter("fca_live_7StwYRzj3RL0A37DlMs9lXtScviEgSRhaff0yP7a");
 
-  let rates = await converter.fetchLatestRate('USD', 'USD,EUR,GBP,JPY,AUD,CAD,CHF,CNY');
+  let rates = await converter.fetchLatestRate('USD', 'USD,EUR,JPY,GBP,AUD,CAD,CHF,CNY,HKD,NZD,SEK,KRW,SGD,NOK,MXN,INR,TRY,RUB,ZAR,BRL,DKK,PLN,THB,MYR,IDR,HUF,CZK,ILS,RON,PHP,ISK,HRK,BGN');
   chrome.storage.local.set({ rates });
 
   // Load saved currency preference when popup opens
@@ -69,18 +69,12 @@ function getSpanText() {
           originalPrice = priceText;
           numberOnly = parseFloat(priceText.replace('$', ''));
         }
-        // numberOnly = parseFloat(priceText.replace('$', ''));
-        let converted = numberOnly * rate;
 
-        const symbols = {
-          'USD': '$',
-          'EUR': '€',
-          'GBP': '£',
-          'JPY': '¥',
-          'CNY': '¥',
-        };
-        const symbol = symbols[currency] || currency + ' $';
-        wholePrice[i].innerHTML = `${symbol}${converted.toFixed(2)} (${originalPrice})`;
+        const converted = numberOnly * rate;
+        const converted_price = Number(converted).toLocaleString(undefined, { style: 'currency', currency: currency });
+
+        wholePrice[i].innerHTML = `${converted_price} (${originalPrice})`;
+
       } catch (error) {
         console.error('Error converting price:', error);
       }
