@@ -16,26 +16,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  convertBtn.addEventListener('click', async () => {
+  convertBtn.addEventListener("click", async () => {
     // Save currency preference when converting
     chrome.storage.local.set({
       preferredCurrency: toCurrency.value
     });
+
+    // Execute script to change all prices on webpage
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: changePrices,
+    });
   });
 });
 
-let priceScrapper = document.getElementById('convertBtn')
-priceScrapper.addEventListener("click", async () => {
-  let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: getSpanText,
-  });
-})
-
-// Function to get text content of a span element with class "hello"
-function getSpanText() {
-
+function changePrices() {
   chrome.storage.local.get(['preferredCurrency', 'rates'], function (result) {
     const currency = result.preferredCurrency;
     const rates = result.rates;
@@ -56,16 +52,14 @@ function getSpanText() {
 
     for (let i = 0; i < wholePrice.length; i++) {
       try {
-        let priceText = wholePrice[i].innerHTML;
-        let numberOnly;
-        let originalPrice;
-        if (priceText.includes('(')) { // Get the original price from parentheses
-          originalPrice = priceText
-            .split('(')[1]
-            .split(')')[0];
-          numberOnly = parseFloat(originalPrice.replace('$', ''));
-        } else { // For first conversion, save the original price with $ sign
+        let priceText = wholePrice[i].innerHTML
+        let numberOnly, originalPrice;
 
+        if (priceText.includes('(')) { // Get the original price from parentheses
+          originalPrice = priceText.split('(')[1].split(')')[0];
+          numberOnly = parseFloat(originalPrice.replace('$', ''));
+
+        } else { // For first conversion, save the original price with $ sign
           originalPrice = priceText;
           numberOnly = parseFloat(priceText.replace('$', ''));
         }
@@ -91,30 +85,17 @@ class CurrencyConverter {
   // Method to fetch the latest exchange rates
   async fetchLatestRate(fromCurrency = 'USD', toCurrency = 'EUR') {
     const url = `${this.baseUrl}latest?apikey=${this.apiKey}&currencies=${toCurrency}&base_currency=${fromCurrency}`;
+
     try {
       const response = await fetch(url);
+
       if (!response.ok) {
         throw new Error(`Error fetching latest rates: ${response.statusText}`);
       }
+
       const reply = await response.json();
       return reply.data;
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  }
 
-  // Method to convert an amount from one currency to another
-  async convert(amount, fromCurrency, toCurrency) {
-    try {
-      const rates = await this.fetchLatestRate(fromCurrency, toCurrency);
-      const conversionRate = rates[toCurrency];
-      if (!conversionRate) {
-        throw new Error(`Unable to find rate for currency: ${toCurrency}`);
-      }
-
-      const convertedAmount = amount * conversionRate
-      return convertedAmount;
     } catch (error) {
       console.error(error);
       throw error;
