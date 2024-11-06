@@ -1,13 +1,16 @@
-document.addEventListener('DOMContentLoaded', async () => {
-  const toCurrency = document.getElementById('toCurrency');
-  const convertBtn = document.getElementById('convertBtn');
-  const result = document.getElementById('result');
+import { API_KEY } from "./secrets.js";
+import { CurrencyConverter } from "./converter.js";
 
+document.addEventListener('DOMContentLoaded', async () => {
   // get the exchange rates
-  const converter = new CurrencyConverter("fca_live_7StwYRzj3RL0A37DlMs9lXtScviEgSRhaff0yP7a");
+  const converter = new CurrencyConverter(API_KEY);
 
   let rates = await converter.fetchLatestRate('USD', 'USD,EUR,JPY,GBP,AUD,CAD,CHF,CNY,HKD,NZD,SEK,KRW,SGD,NOK,MXN,INR,TRY,RUB,ZAR,BRL,DKK,PLN,THB,MYR,IDR,HUF,CZK,ILS,RON,PHP,ISK,HRK,BGN');
   chrome.storage.local.set({ rates });
+
+  // UI Elements
+  const toCurrency = document.getElementById('toCurrency');
+  const convertBtn = document.getElementById('convertBtn');
 
   // Load saved currency preference when popup opens
   chrome.storage.local.get(['preferredCurrency'], function (result) {
@@ -75,30 +78,3 @@ function changePrices() {
     }
   });
 };
-
-class CurrencyConverter {
-  constructor(apiKey) {
-    this.apiKey = apiKey;
-    this.baseUrl = 'https://api.freecurrencyapi.com/v1/';
-  }
-
-  // Method to fetch the latest exchange rates
-  async fetchLatestRate(fromCurrency = 'USD', toCurrency = 'EUR') {
-    const url = `${this.baseUrl}latest?apikey=${this.apiKey}&currencies=${toCurrency}&base_currency=${fromCurrency}`;
-
-    try {
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`Error fetching latest rates: ${response.statusText}`);
-      }
-
-      const reply = await response.json();
-      return reply.data;
-
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  }
-}
