@@ -1,9 +1,9 @@
-function getCurrencyFromURL(url) {
+export function getCurrencyFromURL(url) {
   // Map of country codes to currencies
   const countryToCurrency = {
-    us: "USD", // United States
+    com: "USD", // United States
     jp: "JPY", // Japan
-    gb: "GBP", // United Kingdom
+    uk: "GBP", // United Kingdom
     eu: "EUR", // European Union
     in: "INR", // India
     au: "AUD", // Australia
@@ -26,7 +26,8 @@ function getCurrencyFromURL(url) {
     if (currency) {
       return currency;
     } else {
-      return "Currency not found for this domain.";
+      return tld;
+      // return "Currency not found for this domain.";
     }
   } catch (error) {
     return "Invalid URL.";

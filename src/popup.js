@@ -1,23 +1,23 @@
 import { API_KEY } from "./secrets.js";
 import { CurrencyConverter } from "./converter.js";
-import { getCurrencyFromURL } from "./getlocalcurrency.js"
-
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  const currentTab = tabs[0]; // Get the active tab
-  if (currentTab && currentTab.url) {
-    let currencyCode = getCurrencyFromURL(currentTab.url); // Pass the URL to the callback
-    chrome.storage.local.set({ localCurrency: currencyCode }, () => {
-      console.log(`Local currency has been saved locally to ${currencyCode}.`);
-    });
-  } else {
-    callback(null); // Return null if no valid URL is found
-    chrome.storage.local.set({ localCurrency: "USD" }, () => {
-      console.log("Local currency has been set by default to USD.");
-    });
-  }
-});
+import { getCurrencyFromURL } from "./getlocalcurrency.js";
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // detect the local currency
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentTab = tabs[0]; // Get the active tab
+    if (currentTab && currentTab.url) {
+      let currencyCode = getCurrencyFromURL(currentTab.url); // Pass the URL to the function
+      chrome.storage.local.set({ localCurrency: currencyCode }, () => {
+        console.log(`Local currency has been saved locally to ${currencyCode}.`);
+      });
+    } else {
+      chrome.storage.local.set({ localCurrency: "USD" }, () => {
+        console.log("Local currency has been set by default to USD.");
+      });
+    }
+  });
+
   // get the exchange rates
   const converter = new CurrencyConverter(API_KEY);
 
@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function changePrices() {
+  chrome.storage.local.get(['localCurrency'], function (result) {
+    const curr = result.localCurrency;
+    console.log(curr);
+  });
+
   chrome.storage.local.get(['preferredCurrency', 'rates'], function (result) {
     const currency = result.preferredCurrency;
     const rates = result.rates;
