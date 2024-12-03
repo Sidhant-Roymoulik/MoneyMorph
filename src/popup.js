@@ -53,16 +53,35 @@ function changePrices() {
 
     let wholePrice = document.querySelectorAll('span._cDEzb_p13n-sc-price_3mJ9Z');
 
+    const extractEuroValue = (priceText) => {
+      const numberPart = priceText.replace('€', '').replace('.', '').replace(',', '.');
+      return parseFloat(numberPart);
+    };
+
     for (let i = 0; i < wholePrice.length; i++) {
       try {
         let priceText = wholePrice[i].innerHTML
         let numberOnly, originalPrice;
 
-        if (priceText.includes('(')) { // Get the original price from parentheses
+        // if (priceText.includes('(')) { // Get the original price from parentheses
+        //   originalPrice = priceText.split('(')[1].split(')')[0];
+        //   numberOnly = parseFloat(originalPrice.replace('$', ''));
+
+        // } else { // For first conversion, save the original price with $ sign
+        //   originalPrice = priceText;
+        //   numberOnly = parseFloat(priceText.replace('$', ''));
+        // }
+
+        if (priceText.includes('€')) {
+          // Extract value from European price format
+          originalPrice = priceText;
+          numberOnly = extractEuroValue(priceText);
+        } else if (priceText.includes('(')) {
+          // Handle cases with parentheses (original price)
           originalPrice = priceText.split('(')[1].split(')')[0];
           numberOnly = parseFloat(originalPrice.replace('$', ''));
-
-        } else { // For first conversion, save the original price with $ sign
+        } else {
+          // For other formats, save the original price with $ sign
           originalPrice = priceText;
           numberOnly = parseFloat(priceText.replace('$', ''));
         }
