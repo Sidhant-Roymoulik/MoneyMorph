@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // get the exchange rates
   const converter = new CurrencyConverter(API_KEY);
 
-  chrome.storage.local.get(['localCurrency'], async function (result) {
+  await chrome.storage.local.get(['localCurrency'], async function (result) {
     let rates = await converter.fetchLatestRate(result.localCurrency, 'USD,EUR,JPY,GBP,AUD,CAD,CHF,CNY,HKD,NZD,SEK,KRW,SGD,NOK,MXN,INR,TRY,RUB,ZAR,BRL,DKK,PLN,THB,MYR,IDR,HUF,CZK,ILS,RON,PHP,ISK,HRK,BGN');
     chrome.storage.local.set({ rates });
   });
@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function changePrices() {
-  function extractPrices(priceString) {
+
+    function extractPrices(priceString) {
     // Regular expression to match numbers with potential currency symbols, commas, and spaces
     const regex = /[^\d.,]?(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})[^\d.,]?/g;
 
