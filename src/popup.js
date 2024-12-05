@@ -93,6 +93,7 @@ function changePrices() {
 
   let alibaba_htmlTags = ['.price span', '.price-item span', '.normal'];
   let amazon_htmlTags = ['._cDEzb_p13n-sc-price_3mJ9Z', '.p13n-sc-price'];
+  let ebay_htmlTags = ['.vlp-merch-price span[role="text"]', '.ux-textspans', 'span.textual-display.bsig__price.bsig__price--displayprice', 'span.textual-display.bsig__generic.bsig__previousPrice.strikethrough'];
 
   chrome.storage.local.get(['preferredCurrency', 'rates'], function (result) {
     const currency = result.preferredCurrency;
@@ -110,7 +111,7 @@ function changePrices() {
       return;
     }
 
-    [...alibaba_htmlTags, ...amazon_htmlTags].forEach(htmlTag => {
+    [...alibaba_htmlTags, ...amazon_htmlTags, ...ebay_htmlTags].forEach(htmlTag => {
       let wholePrice = document.querySelectorAll(htmlTag);
 
       for (let i = 0; i < wholePrice.length; i++) {
