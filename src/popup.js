@@ -1,12 +1,30 @@
 import { API_KEY } from "./secrets.js";
 import { CurrencyConverter } from "./converter.js";
+import { getCurrencyFromURL } from "./getlocalcurrency.js";
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // detect the local currency
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentTab = tabs[0]; // Get the active tab
+    if (currentTab && currentTab.url) {
+      let currencyCode = getCurrencyFromURL(currentTab.url); // Pass the URL to the function
+      chrome.storage.local.set({ localCurrency: currencyCode }, () => {
+        console.log(`Local currency has been saved locally to ${currencyCode}.`);
+      });
+    } else {
+      chrome.storage.local.set({ localCurrency: "USD" }, () => {
+        console.log("Local currency has been set by default to USD.");
+      });
+    }
+  });
+
   // get the exchange rates
   const converter = new CurrencyConverter(API_KEY);
 
-  let rates = await converter.fetchLatestRate('USD', 'USD,EUR,JPY,GBP,AUD,CAD,CHF,CNY,HKD,NZD,SEK,KRW,SGD,NOK,MXN,INR,TRY,RUB,ZAR,BRL,DKK,PLN,THB,MYR,IDR,HUF,CZK,ILS,RON,PHP,ISK,HRK,BGN');
-  chrome.storage.local.set({ rates });
+  await chrome.storage.local.get(['localCurrency'], async function (result) {
+    let rates = await converter.fetchLatestRate(result.localCurrency, 'USD,EUR,JPY,GBP,AUD,CAD,CHF,CNY,HKD,NZD,SEK,KRW,SGD,NOK,MXN,INR,TRY,RUB,ZAR,BRL,DKK,PLN,THB,MYR,IDR,HUF,CZK,ILS,RON,PHP,ISK,HRK,BGN');
+    chrome.storage.local.set({ rates });
+  });
 
   // UI Elements
   const toCurrency = document.getElementById('toCurrency');
@@ -35,6 +53,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function changePrices() {
+
+    function extractPrices(priceString) {
+    // Regular expression to match numbers with potential currency symbols, commas, and spaces
+    const regex = /[^\d.,]?(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})[^\d.,]?/g;
+
+    // Extract matches
+    const matches = [...priceString.matchAll(regex)];
+
+    // Convert matches to floats
+    const prices = matches.map(match => {
+      let price = match[1];
+
+      // Determine the role of '.' and ',' based on their positions
+      const hasComma = price.indexOf(',') !== -1;
+      const hasDot = price.indexOf('.') !== -1;
+
+      if (hasComma && hasDot) {
+        if (price.indexOf(',') > price.indexOf('.')) {
+          // Comma is the decimal separator
+          price = price.replace('.', '').replace(',', '.');
+        } else {
+          // Dot is the decimal separator
+          price = price.replace(/,/g, '');
+        }
+      } else if (hasComma && !hasDot) {
+        // Only a comma is present, so it’s the decimal separator
+        price = price.replace(',', '.');
+      } else if (!hasComma && hasDot) {
+        // Only a dot is present, so no changes are needed
+        price = price;
+      }
+
+      return parseFloat(price);
+    });
+
+    return prices;
+  }
+
   chrome.storage.local.get(['preferredCurrency', 'rates'], function (result) {
     const currency = result.preferredCurrency;
     const rates = result.rates;
@@ -50,41 +106,23 @@ function changePrices() {
       console.error('Currency rate not found for:', currency);
       return;
     }
-
     let wholePrice = document.querySelectorAll('span._cDEzb_p13n-sc-price_3mJ9Z');
-
-    const extractEuroValue = (priceText) => {
-      const numberPart = priceText.replace('€', '').replace('.', '').replace(',', '.');
-      return parseFloat(numberPart);
-    };
 
     for (let i = 0; i < wholePrice.length; i++) {
       try {
         let priceText = wholePrice[i].innerHTML
-        let numberOnly, originalPrice;
+        let originalPrice;
 
-        // if (priceText.includes('(')) { // Get the original price from parentheses
-        //   originalPrice = priceText.split('(')[1].split(')')[0];
-        //   numberOnly = parseFloat(originalPrice.replace('$', ''));
-
-        // } else { // For first conversion, save the original price with $ sign
-        //   originalPrice = priceText;
-        //   numberOnly = parseFloat(priceText.replace('$', ''));
-        // }
-
-        if (priceText.includes('€')) {
-          // Extract value from European price format
-          originalPrice = priceText;
-          numberOnly = extractEuroValue(priceText);
-        } else if (priceText.includes('(')) {
-          // Handle cases with parentheses (original price)
+        if (priceText.includes('(')) { // Get the original price from parentheses
           originalPrice = priceText.split('(')[1].split(')')[0];
-          numberOnly = parseFloat(originalPrice.replace('$', ''));
-        } else {
-          // For other formats, save the original price with $ sign
+
+        } else { // For first conversion, save the original price with $ sign
           originalPrice = priceText;
-          numberOnly = parseFloat(priceText.replace('$', ''));
         }
+
+        console.log(originalPrice, extractPrices(originalPrice));
+
+        let numberOnly = extractPrices(originalPrice)[0];
 
         const converted = numberOnly * rate;
         const converted_price = Number(converted).toLocaleString(undefined, { style: 'currency', currency: currency });
