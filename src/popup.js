@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function changePrices() {
 
-    function extractPrices(priceString) {
+  function extractPrices(priceString) {
     // Regular expression to match numbers with potential currency symbols, commas, and spaces
     const regex = /[^\d.,]?(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})[^\d.,]?/g;
 
@@ -91,6 +91,9 @@ function changePrices() {
     return prices;
   }
 
+  let alibaba_htmlTags = ['.price span', '.price-item span', '.normal'];
+  let amazon_htmlTags = ['._cDEzb_p13n-sc-price_3mJ9Z', '.p13n-sc-price'];
+
   chrome.storage.local.get(['preferredCurrency', 'rates'], function (result) {
     const currency = result.preferredCurrency;
     const rates = result.rates;
@@ -106,32 +109,36 @@ function changePrices() {
       console.error('Currency rate not found for:', currency);
       return;
     }
-    let wholePrice = document.querySelectorAll('span._cDEzb_p13n-sc-price_3mJ9Z');
 
-    for (let i = 0; i < wholePrice.length; i++) {
-      try {
-        let priceText = wholePrice[i].innerHTML
-        let originalPrice;
+    [...alibaba_htmlTags, ...amazon_htmlTags].forEach(htmlTag => {
+      let wholePrice = document.querySelectorAll(htmlTag);
 
-        if (priceText.includes('(')) { // Get the original price from parentheses
-          originalPrice = priceText.split('(')[1].split(')')[0];
+      for (let i = 0; i < wholePrice.length; i++) {
+        try {
+          let priceText = wholePrice[i].innerHTML;
+          let originalPrice;
 
-        } else { // For first conversion, save the original price with $ sign
-          originalPrice = priceText;
+          if (priceText.includes('(')) { // Get the original price from parentheses
+            originalPrice = priceText.split('(')[1].split(')')[0];
+          }
+          else { // For first conversion, save the original price
+            originalPrice = priceText;
+          }
+
+          console.log(originalPrice, extractPrices(originalPrice));
+          let numberOnly = extractPrices(originalPrice)[0];
+
+          if (numberOnly) {
+            const converted = numberOnly * rate;
+            const converted_price = Number(converted).toLocaleString(undefined, { style: 'currency', currency: currency });
+
+            wholePrice[i].innerHTML = `${converted_price} (${originalPrice.trim()})`;
+          }
+
+        } catch (error) {
+          console.error('Error converting price:', error);
         }
-
-        console.log(originalPrice, extractPrices(originalPrice));
-
-        let numberOnly = extractPrices(originalPrice)[0];
-
-        const converted = numberOnly * rate;
-        const converted_price = Number(converted).toLocaleString(undefined, { style: 'currency', currency: currency });
-
-        wholePrice[i].innerHTML = `${converted_price} (${originalPrice})`;
-
-      } catch (error) {
-        console.error('Error converting price:', error);
       }
-    }
+    });
   });
 };
