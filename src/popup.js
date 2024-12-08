@@ -95,16 +95,54 @@ function changePrices() {
   let amazon_htmlTags = ['._cDEzb_p13n-sc-price_3mJ9Z', '.p13n-sc-price'];
   let ebay_htmlTags = ['.vlp-merch-price span[role="text"]', '.ux-textspans', 'span.textual-display.bsig__price.bsig__price--displayprice', 'span.textual-display.bsig__generic.bsig__previousPrice.strikethrough'];
 
-  chrome.storage.local.get(['preferredCurrency', 'rates'], function (result) {
+  chrome.storage.local.get(['preferredCurrency', 'rates', 'localCurrency'], function (result) {
     const currency = result.preferredCurrency;
     const rates = result.rates;
+    const localCurrency = result.localCurrency;
 
     if (!rates || !currency) {
       console.error('Rates or preferred currency not found');
       return;
     }
+  
+    const VAT_RATES = {
+        "USD": 0,     // US - no VAT
+        "EUR": 21,    // EU standard
+        "JPY": 10,    // Japan
+        "GBP": 20,    // UK
+        "AUD": 10,    // Australia
+        "CAD": 5,     // Canada
+        "CHF": 7.7,   // Switzerland
+        "CNY": 13,    // China
+        "HKD": 0,     // Hong Kong
+        "NZD": 15,    // New Zealand
+        "SEK": 25,    // Sweden
+        "KRW": 10,    // South Korea
+        "SGD": 7,     // Singapore
+        "NOK": 25,    // Norway
+        "MXN": 16,    // Mexico
+        "INR": 18,    // India
+        "TRY": 20,    // Turkey
+        "RUB": 20,    // Russia
+        "ZAR": 15,    // South Africa
+        "BRL": 17,    // Brazil
+        "DKK": 25,    // Denmark
+        "PLN": 23,    // Poland
+        "THB": 7,     // Thailand
+        "MYR": 10,    // Malaysia
+        "IDR": 11,    // Indonesia
+        "HUF": 27,    // Hungary
+        "CZK": 21,    // Czech Republic
+        "ILS": 17,    // Israel
+        "RON": 19,    // Romania
+        "PHP": 12,    // Philippines
+        "ISK": 24,    // Iceland
+        "HRK": 25,    // Croatia
+        "BGN": 20     // Bulgaria
+    }
 
     const rate = rates[currency];
+    const vat_rate = VAT_RATES[localCurrency]; 
 
     if (!rate) {
       console.error('Currency rate not found for:', currency);
@@ -131,9 +169,13 @@ function changePrices() {
 
           if (numberOnly) {
             const converted = numberOnly * rate;
+            const vat_price = (converted * vat_rate / 100).toFixed(2);
             const converted_price = Number(converted).toLocaleString(undefined, { style: 'currency', currency: currency });
-
-            wholePrice[i].innerHTML = `${converted_price} (${originalPrice.trim()})`;
+            if (vat_rate == 0) {
+              wholePrice[i].innerHTML = `${converted_price} (${originalPrice.trim()})`;
+            } else {
+              wholePrice[i].innerHTML = `${converted_price} + ${vat_price} (${originalPrice.trim()})`;
+            }
           }
 
         } catch (error) {
